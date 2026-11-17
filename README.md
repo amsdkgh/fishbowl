@@ -15,6 +15,7 @@ Fishbowl is a local Wi-Fi party game (Monikers-style: Taboo + Password + Charade
 3. Host starts game.
 4. Presenters rotate through timed turns.
 5. Same master deck is replayed across 3 rounds with reshuffle each round.
+6. Optional host setting: randomize presenter order after each full cycle while keeping team alternation.
 
 ## What each button means
 

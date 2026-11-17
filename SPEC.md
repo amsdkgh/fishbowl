@@ -82,6 +82,11 @@ Primary presenter action layout:
 
 - Card Entry header includes top-right CTA: `Start game`.
 
+### Lobby settings
+
+- Host can toggle `Randomize presenter order each full cycle (preserve team alternation)` (default off).
+- When enabled, after every player has taken one turn in the current round, presenter order is reshuffled for the next cycle while preserving strict red/blue alternation.
+
 ## Error handling expectations
 
 - Server action failures surface API message in UI alert.

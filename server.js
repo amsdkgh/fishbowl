@@ -27,7 +27,8 @@ const TEAM = {
 const DEFAULT_SETTINGS = {
   cardsPerPlayer: 5,
   turnSeconds: 60,
-  preTurnCountdownSeconds: 3
+  preTurnCountdownSeconds: 3,
+  randomizePresenterOrderEachCycle: false
 };
 
 const state = createInitialState();
@@ -207,6 +208,7 @@ function handleAction(body) {
     }
     const cardsPerPlayer = Number(body.cardsPerPlayer);
     const turnSeconds = Number(body.turnSeconds);
+    const randomizePresenterOrderEachCycle = Boolean(body.randomizePresenterOrderEachCycle);
     if (!Number.isInteger(cardsPerPlayer) || cardsPerPlayer < 1 || cardsPerPlayer > 20) {
       return fail("INVALID_SETTING", "Cards per player must be 1-20.");
     }
@@ -215,6 +217,7 @@ function handleAction(body) {
     }
     state.settings.cardsPerPlayer = cardsPerPlayer;
     state.settings.turnSeconds = turnSeconds;
+    state.settings.randomizePresenterOrderEachCycle = randomizePresenterOrderEachCycle;
     return ok();
   }
 
@@ -487,7 +490,7 @@ function startCountdownAndTurn() {
 
 function endTurn(reason) {
   clearTimers();
-  const ordered = getOrderedPlayers();
+  let ordered = getOrderedPlayers();
   if (!ordered.length || !state.turn) {
     return;
   }
@@ -498,6 +501,10 @@ function endTurn(reason) {
     state.turn.status = "ENDED";
     state.turn.endReason = reason;
     return;
+  }
+  if (state.settings.randomizePresenterOrderEachCycle && state.presenterIndex === 0) {
+    randomizePresenterOrderForNextCycle(ordered[0]?.team || TEAM.RED);
+    ordered = getOrderedPlayers();
   }
   const nextPresenter = ordered[state.presenterIndex];
   if (
@@ -662,6 +669,27 @@ function getDefaultTeamForNewPlayer() {
   const ordered = getOrderedPlayers();
   if (!ordered.length) {
     return TEAM.RED;
+  }
+
+  function randomizePresenterOrderForNextCycle(startTeam) {
+    const ordered = getOrderedPlayers();
+    const reds = shuffle([...ordered.filter((p) => p.team === TEAM.RED)]);
+    const blues = shuffle([...ordered.filter((p) => p.team === TEAM.BLUE)]);
+    if (!reds.length || reds.length !== blues.length) {
+      return;
+    }
+    const nextOrdered = [];
+    for (let i = 0; i < ordered.length; i += 1) {
+      const wantsRed = i % 2 === 0 ? startTeam === TEAM.RED : startTeam !== TEAM.RED;
+      const next = wantsRed ? reds.shift() : blues.shift();
+      if (!next) {
+        return;
+      }
+      nextOrdered.push(next);
+    }
+    for (let i = 0; i < nextOrdered.length; i += 1) {
+      nextOrdered[i].order = i;
+    }
   }
 
   function passTopCardToBack(deck) {

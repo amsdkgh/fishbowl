@@ -40,6 +40,7 @@ const els = {
   hostBadge: byId("hostBadge"),
   cardsPerPlayerInput: byId("cardsPerPlayerInput"),
   turnSecondsInput: byId("turnSecondsInput"),
+  randomizePresenterOrderCheckbox: byId("randomizePresenterOrderCheckbox"),
   saveSettingsBtn: byId("saveSettingsBtn"),
   playersList: byId("playersList"),
   moveUpBtn: byId("moveUpBtn"),
@@ -106,7 +107,8 @@ els.saveSettingsBtn.addEventListener("click", () =>
   sendAction({
     type: "UPDATE_SETTINGS",
     cardsPerPlayer: Number(els.cardsPerPlayerInput.value),
-    turnSeconds: Number(els.turnSecondsInput.value)
+    turnSeconds: Number(els.turnSecondsInput.value),
+    randomizePresenterOrderEachCycle: Boolean(els.randomizePresenterOrderCheckbox.checked)
   })
 );
 els.startCardEntryBtn.addEventListener("click", () => sendAction({ type: "START_CARD_ENTRY" }));
@@ -323,6 +325,7 @@ function render() {
 
   els.cardsPerPlayerInput.value = String(gameState.settings.cardsPerPlayer);
   els.turnSecondsInput.value = String(gameState.settings.turnSeconds);
+  els.randomizePresenterOrderCheckbox.checked = Boolean(gameState.settings.randomizePresenterOrderEachCycle);
 
   renderPlayers(me, isHost);
   if (gameState.phase === PHASE.CARD_ENTRY) {
