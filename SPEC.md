@@ -9,7 +9,7 @@ This spec defines gameplay state behavior and current UI/interaction behavior fo
 - Backend: Node.js HTTP server (`server.js`), in-memory game state.
 - Frontend: vanilla HTML/CSS/JS (`public/`), polling server state.
 - Transport: REST endpoints (`/api/state`, `/api/join`, `/api/action`).
-- Helper host page: local HTTP helper server on `localhost:3001` that shows join QR for `http://<host-ip>:3000` and auto-opens on startup.
+- Helper host page: local HTTP helper server on `localhost:3001` that shows join QR for `http://<host-ip>:3000`, auto-opens on startup, live-tints red/blue based on current presenting team, and displays live team scores plus round timer/countdown status.
 
 ## Core game state
 
@@ -36,6 +36,8 @@ This spec defines gameplay state behavior and current UI/interaction behavior fo
 - `OPPONENT_POINT`: awards point to opposing team.
 - `PASS`: moves top card to back of active round deck.
 - `UNDO`: reverts most recent scoring action within same turn/round.
+- Team handoff safeguard: when presenter rotates to the opposite team, the current top card is auto-passed to the back so the next team does not inherit a just-seen prompt.
+- Card submission validation: card description/body must not reuse any word from the card header (case-insensitive word overlap check).
 
 ## UI behavior spec (current)
 

@@ -244,6 +244,12 @@ function handleAction(body) {
     if (!header) {
       return fail("INVALID_CARD", "Card header is required.");
     }
+    if (cardBody && sharesAnyWord(header, cardBody)) {
+      return fail(
+        "INVALID_CARD",
+        "Card description cannot contain words from the header (case-insensitive)."
+      );
+    }
     if (!state.submissionsByPlayerId[player.id]) {
       state.submissionsByPlayerId[player.id] = [];
     }
@@ -485,6 +491,7 @@ function endTurn(reason) {
   if (!ordered.length || !state.turn) {
     return;
   }
+  const previousPresenter = ordered[state.presenterIndex];
   state.presenterIndex = (state.presenterIndex + 1) % ordered.length;
   if (!state.activeRoundDeck.length) {
     state.phase = PHASE.ROUND_SUMMARY;
@@ -492,9 +499,19 @@ function endTurn(reason) {
     state.turn.endReason = reason;
     return;
   }
+  const nextPresenter = ordered[state.presenterIndex];
+  if (
+    previousPresenter &&
+    nextPresenter &&
+    previousPresenter.team &&
+    nextPresenter.team &&
+    previousPresenter.team !== nextPresenter.team
+  ) {
+    passTopCardToBack(state.activeRoundDeck);
+  }
   state.turn = {
     turnId: crypto.randomUUID(),
-    presenterPlayerId: ordered[state.presenterIndex].id,
+    presenterPlayerId: nextPresenter.id,
     status: "IDLE",
     countdownEndsAtMs: null,
     timerEndsAtMs: null,
@@ -646,6 +663,34 @@ function getDefaultTeamForNewPlayer() {
   if (!ordered.length) {
     return TEAM.RED;
   }
+
+  function passTopCardToBack(deck) {
+    if (!Array.isArray(deck) || deck.length <= 1) {
+      return;
+    }
+    const top = deck.shift();
+    deck.push(top);
+  }
+
+  function sharesAnyWord(header, cardBody) {
+    const headerWords = tokenizeWords(header);
+    if (!headerWords.size) {
+      return false;
+    }
+    const bodyWords = tokenizeWords(cardBody);
+    for (const word of bodyWords) {
+      if (headerWords.has(word)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function tokenizeWords(value) {
+    const text = String(value || "").toLowerCase();
+    const matches = text.match(/[a-z0-9]+/g) || [];
+    return new Set(matches);
+  }
   for (let i = ordered.length - 1; i >= 0; i -= 1) {
     const priorTeam = ordered[i].team;
     if (priorTeam === TEAM.RED) {
@@ -704,6 +749,39 @@ function getPreferredLocalIpv4() {
 function startHelperServer(joinUrl) {
   const helper = http.createServer((req, res) => {
     const parsed = new URL(req.url, `http://${req.headers.host}`);
+    if (parsed.pathname === "/state-theme" && req.method === "GET") {
+      const now = Date.now();
+      const presenterId = state.turn?.presenterPlayerId || null;
+      const presenter = presenterId ? getPlayerById(presenterId) : null;
+      const turnStatus = state.turn?.status || null;
+      const countdownSecondsRemaining =
+        turnStatus === "COUNTDOWN" && state.turn?.countdownEndsAtMs
+          ? Math.max(0, Math.ceil((state.turn.countdownEndsAtMs - now) / 1000))
+          : null;
+      const timerSecondsRemaining =
+        turnStatus === "RUNNING" && state.turn?.timerEndsAtMs
+          ? Math.max(0, Math.ceil((state.turn.timerEndsAtMs - now) / 1000))
+          : null;
+      const payload = {
+        ok: true,
+        phase: state.phase,
+        currentRound: state.currentRound,
+        presenterTeam: presenter ? presenter.team : null,
+        presenterName: presenter ? presenter.nicknameRaw : null,
+        totalScores: state.totalScores,
+        turnStatus,
+        countdownSecondsRemaining,
+        timerSecondsRemaining
+      };
+      const text = JSON.stringify(payload);
+      res.writeHead(200, {
+        "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": "no-store",
+        "Content-Length": Buffer.byteLength(text)
+      });
+      res.end(text);
+      return;
+    }
     if (parsed.pathname !== "/" || req.method !== "GET") {
       res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
       res.end("Not found");
@@ -740,10 +818,17 @@ function buildHelperHtml(joinUrl) {
     <title>Fishbowl Join QR</title>
     <style>
       :root { font-family: Inter, Segoe UI, Arial, sans-serif; }
-      body { margin: 0; background: #121922; color: #f2f7ff; display: grid; place-items: center; min-height: 100vh; }
+      body { margin: 0; background: #121922; color: #f2f7ff; display: grid; place-items: center; min-height: 100vh; transition: background-color 180ms ease-in-out; }
+      body.presenting-red { background: #2a0f12; }
+      body.presenting-blue { background: #0f1d34; }
       main { width: min(560px, 92vw); background: #1e2734; border: 1px solid #344055; border-radius: 16px; padding: 24px; text-align: center; }
       h1 { margin: 0 0 8px; font-size: clamp(1.5rem, 4vw, 2rem); }
       p { margin: 0 0 18px; color: #d5deee; }
+      .status { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0 0 14px; }
+      .score { border-radius: 10px; padding: 8px 10px; font-size: 1.2rem; font-weight: 800; }
+      .score.red { background: #682121; }
+      .score.blue { background: #1f386a; }
+      .meta { margin: 0 0 12px; color: #cdd7ec; font-weight: 600; }
       img { width: min(360px, 78vw); background: #fff; border-radius: 12px; padding: 12px; }
       code { display: block; margin-top: 16px; padding: 10px; border-radius: 8px; background: #111722; color: #9dc3ff; word-break: break-all; }
     </style>
@@ -751,10 +836,43 @@ function buildHelperHtml(joinUrl) {
   <body>
     <main>
       <h1>Scan to join Fishbowl</h1>
-      <p>Phones on the same Wi-Fi can scan this QR code.</p>
+      <p id="metaText" class="meta">Phones on the same Wi-Fi can scan this QR code.</p>
+      <div class="status">
+        <div class="score red">Red: <span id="scoreRed">0</span></div>
+        <div class="score blue">Blue: <span id="scoreBlue">0</span></div>
+      </div>
       <img src="${qrSrc}" alt="Fishbowl join QR code" />
       <code>${escapedJoinUrl}</code>
     </main>
+    <script>
+      async function pollTheme() {
+        try {
+          const response = await fetch('/state-theme', { cache: 'no-store' });
+          if (!response.ok) return;
+          const data = await response.json();
+          const inRound = data.phase === 'ROUND_1' || data.phase === 'ROUND_2' || data.phase === 'ROUND_3';
+          const team = inRound ? data.presenterTeam : null;
+          const scoreRed = document.getElementById('scoreRed');
+          const scoreBlue = document.getElementById('scoreBlue');
+          const metaText = document.getElementById('metaText');
+          scoreRed.textContent = String(data.totalScores?.RED ?? 0);
+          scoreBlue.textContent = String(data.totalScores?.BLUE ?? 0);
+          if (data.turnStatus === 'COUNTDOWN') {
+            metaText.textContent = 'Round ' + (data.currentRound || '-') + ' · ' + (data.presenterName || 'Presenter') + ' starts in ' + data.countdownSecondsRemaining + 's';
+          } else if (data.turnStatus === 'RUNNING') {
+            metaText.textContent = 'Round ' + (data.currentRound || '-') + ' · ' + (data.presenterName || 'Presenter') + ' time left: ' + data.timerSecondsRemaining + 's';
+          } else if (inRound) {
+            metaText.textContent = 'Round ' + (data.currentRound || '-') + ' · Presenter: ' + (data.presenterName || 'TBD');
+          } else {
+            metaText.textContent = 'Phones on the same Wi-Fi can scan this QR code.';
+          }
+          document.body.classList.toggle('presenting-red', team === 'RED');
+          document.body.classList.toggle('presenting-blue', team === 'BLUE');
+        } catch {}
+      }
+      pollTheme();
+      setInterval(pollTheme, 600);
+    </script>
   </body>
 </html>`;
 }

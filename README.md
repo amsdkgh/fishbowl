@@ -23,6 +23,10 @@ Fishbowl is a local Wi-Fi party game (Monikers-style: Taboo + Password + Charade
 - **Opponent Point**: Press if you accidentally used forbidden wording (e.g., you said words from the header) and the point should go to the other team.
 - **Undo**: Press immediately after a score/opponent-point if you applied it incorrectly.
 
+Card writing rule:
+
+- Card description cannot reuse words from the card header (case-insensitive), to keep clues fair.
+
 ## UI quick tour
 
 - Round screen uses team-tinted backgrounds for the active presenter.
