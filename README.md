@@ -45,6 +45,10 @@ Open on host machine:
 
 `http://localhost:3000`
 
+Host helper (auto-opened):
+
+`http://localhost:3001` (QR code page)
+
 Open from phones on same Wi-Fi:
 
 `http://<host-lan-ip>:3000`

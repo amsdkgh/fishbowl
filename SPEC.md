@@ -9,6 +9,7 @@ This spec defines gameplay state behavior and current UI/interaction behavior fo
 - Backend: Node.js HTTP server (`server.js`), in-memory game state.
 - Frontend: vanilla HTML/CSS/JS (`public/`), polling server state.
 - Transport: REST endpoints (`/api/state`, `/api/join`, `/api/action`).
+- Helper host page: local HTTP helper server on `localhost:3001` that shows join QR for `http://<host-ip>:3000` and auto-opens on startup.
 
 ## Core game state
 

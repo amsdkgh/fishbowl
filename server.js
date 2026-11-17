@@ -2,8 +2,11 @@ const http = require("http");
 const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
+const os = require("os");
+const { exec } = require("child_process");
 
 const PORT = process.env.PORT || 3000;
+const HELPER_PORT = process.env.FISHBOWL_HELPER_PORT || 3001;
 const PUBLIC_DIR = path.join(__dirname, "public");
 
 const PHASE = {
@@ -672,5 +675,103 @@ function fail(code, message) {
 }
 
 server.listen(PORT, () => {
+  const hostIp = getPreferredLocalIpv4();
+  const hostJoinUrl = `http://${hostIp}:${PORT}`;
   console.log(`Fishbowl running on http://localhost:${PORT}`);
+  console.log(`Join from same Wi-Fi: ${hostJoinUrl}`);
+  startHelperServer(hostJoinUrl);
 });
+
+function getPreferredLocalIpv4() {
+  const interfaces = os.networkInterfaces();
+  const candidates = [];
+  for (const [name, addresses] of Object.entries(interfaces)) {
+    for (const addr of addresses || []) {
+      if (addr.family !== "IPv4" || addr.internal) {
+        continue;
+      }
+      if (addr.address.startsWith("169.254.")) {
+        continue;
+      }
+      const nameScore = /wi-?fi|wlan|wireless/i.test(name) ? 0 : 1;
+      candidates.push({ nameScore, address: addr.address });
+    }
+  }
+  candidates.sort((a, b) => a.nameScore - b.nameScore || a.address.localeCompare(b.address));
+  return candidates[0]?.address || "127.0.0.1";
+}
+
+function startHelperServer(joinUrl) {
+  const helper = http.createServer((req, res) => {
+    const parsed = new URL(req.url, `http://${req.headers.host}`);
+    if (parsed.pathname !== "/" || req.method !== "GET") {
+      res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+      res.end("Not found");
+      return;
+    }
+    const html = buildHelperHtml(joinUrl);
+    res.writeHead(200, {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "no-store",
+      "Content-Length": Buffer.byteLength(html)
+    });
+    res.end(html);
+  });
+
+  helper.listen(HELPER_PORT, () => {
+    const helperUrl = `http://localhost:${HELPER_PORT}`;
+    console.log(`Share helper opened at ${helperUrl}`);
+    openUrl(helperUrl);
+  });
+
+  helper.on("error", (error) => {
+    console.error(`Failed to start helper server on port ${HELPER_PORT}: ${error.message}`);
+  });
+}
+
+function buildHelperHtml(joinUrl) {
+  const escapedJoinUrl = joinUrl.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=360x360&data=${encodeURIComponent(joinUrl)}`;
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fishbowl Join QR</title>
+    <style>
+      :root { font-family: Inter, Segoe UI, Arial, sans-serif; }
+      body { margin: 0; background: #121922; color: #f2f7ff; display: grid; place-items: center; min-height: 100vh; }
+      main { width: min(560px, 92vw); background: #1e2734; border: 1px solid #344055; border-radius: 16px; padding: 24px; text-align: center; }
+      h1 { margin: 0 0 8px; font-size: clamp(1.5rem, 4vw, 2rem); }
+      p { margin: 0 0 18px; color: #d5deee; }
+      img { width: min(360px, 78vw); background: #fff; border-radius: 12px; padding: 12px; }
+      code { display: block; margin-top: 16px; padding: 10px; border-radius: 8px; background: #111722; color: #9dc3ff; word-break: break-all; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Scan to join Fishbowl</h1>
+      <p>Phones on the same Wi-Fi can scan this QR code.</p>
+      <img src="${qrSrc}" alt="Fishbowl join QR code" />
+      <code>${escapedJoinUrl}</code>
+    </main>
+  </body>
+</html>`;
+}
+
+function openUrl(url) {
+  const escapedUrl = `"${url}"`;
+  let command;
+  if (process.platform === "win32") {
+    command = `start "" ${escapedUrl}`;
+    exec(command, { shell: "cmd.exe" }, () => {});
+    return;
+  }
+  if (process.platform === "darwin") {
+    command = `open ${escapedUrl}`;
+    exec(command, () => {});
+    return;
+  }
+  command = `xdg-open ${escapedUrl}`;
+  exec(command, () => {});
+}
