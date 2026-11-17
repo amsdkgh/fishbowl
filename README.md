@@ -1,55 +1,39 @@
-# fishbowl
+# Fishbowl
 
-Local Wi-Fi Fishbowl game (Monikers-style: Taboo + Password + Charades) with:
+Fishbowl is a local Wi-Fi party game (Monikers-style: Taboo + Password + Charades) for phones on the same network.
 
-- Red/Blue team setup
-- Custom card entry
-- 3 rounds with reshuffled master deck each round
-- Presenter-only prompts
-- Timed turns, scoring, pass, opponent point, and undo
-- Auto team assignment on join (first player RED, then alternating by last assigned team)
+## Why use this app
 
-## UI spec (current)
+- Fast setup in a browser (no install on player devices).
+- Team-based rounds with a shared deck and timer.
+- Designed for in-room play with one presenter at a time.
 
-### Round/presenter experience
+## Game flow
 
-- Full-page background is team-coded by active presenter team:
-  - RED presenter: dark red page tint
-  - BLUE presenter: dark blue page tint
-- Presenter controls are phase-gated:
-  - **IDLE**: only `Ready / Start` visible
-  - **COUNTDOWN**: scoring controls hidden
-  - **RUNNING**: card + action controls visible
-- Main gameplay section is centered with larger, high-contrast text for turn status, timer, and prompt content.
+1. Players join lobby and are auto-assigned alternating teams (first join is RED).
+2. Everyone submits cards in Card Entry.
+3. Host starts game.
+4. Presenters rotate through timed turns.
+5. Same master deck is replayed across 3 rounds with reshuffle each round.
 
-### Flash-card interactions
+## What each button means
 
-- Prompt card is styled as a physical upright flash card.
-- `Score` and `Opponent Point` trigger an upward swipe animation.
-- `Pass` triggers a right-then-back-left swipe animation to suggest moving card to back of deck.
-- Score actions show a temporary `+1` popup in awarded team color.
+- **Score**: Press when your team correctly guessed the card header phrase.
+- **Pass**: Press to skip a card and send it to the back of the current deck (for example, if you don’t want to clue it yet).
+- **Opponent Point**: Press if you accidentally used forbidden wording (e.g., you said words from the header) and the point should go to the other team.
+- **Undo**: Press immediately after a score/opponent-point if you applied it incorrectly.
 
-### Button hierarchy and color system
+## UI quick tour
 
-- Presenter action order:
-  1. `Score` (primary, above card)
-  2. Card prompt
-  3. `Pass` (primary, below card)
-  4. Secondary row: `Opponent Point`, `Undo`
-- Team-sensitive actions are color-coded:
-  - `Score` uses presenter team color
-  - `Opponent Point` uses opposing team color
-- Pressed/temporarily disabled team buttons keep an in-family darker team shade (not neutral gray).
+- Round screen uses team-tinted backgrounds for the active presenter.
+- Ready/Start appears before a turn; scoring controls appear during live turn.
+- Card interactions animate to reinforce game actions:
+  - Score / Opponent Point: upward swipe
+  - Pass: right then back-left swipe (to back of deck)
 
-### Card Entry layout
+## Screenshots
 
-- Card Entry header includes top-right CTA button labeled `Start game` (replacing `Start round 1`).
-
-### Lobby/player team selection
-
-- Team dropdown is color-coded:
-  - Selected value colors: neutral / RED / BLUE
-  - Option backgrounds are also color-coded (neutral / RED / BLUE)
+Add gameplay screenshots here (for example: lobby, card entry, active round, final results).
 
 ## Run locally
 
