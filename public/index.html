@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fishbowl</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="top">
+        <h1>Fishbowl</h1>
+        <div id="connectionStatus" class="pill">Connecting...</div>
+      </header>
+
+      <section class="scoreboard">
+        <div class="score red">
+          <strong>Red</strong>
+          <span id="scoreRed">0</span>
+        </div>
+        <div class="score blue">
+          <strong>Blue</strong>
+          <span id="scoreBlue">0</span>
+        </div>
+        <div class="meta">
+          <span id="phaseLabel">Lobby</span>
+          <span id="roundLabel">Round -</span>
+          <span id="deckCountLabel">Deck 0</span>
+        </div>
+      </section>
+
+      <section id="alerts"></section>
+
+      <section id="joinView" class="card">
+        <h2>Join</h2>
+        <label for="nicknameInput">Nickname</label>
+        <input id="nicknameInput" autocomplete="name" />
+        <button id="joinBtn">Join game</button>
+      </section>
+
+      <section id="lobbyView" class="card hidden">
+        <h2>Lobby</h2>
+        <div id="hostBadge" class="host-badge hidden">You are host</div>
+        <div class="settings">
+          <label>Cards per player <input id="cardsPerPlayerInput" type="number" min="1" max="20" /></label>
+          <label>Turn seconds <input id="turnSecondsInput" type="number" min="15" max="180" /></label>
+          <button id="saveSettingsBtn">Save settings</button>
+        </div>
+        <h3>Players</h3>
+        <div id="playersList"></div>
+        <div class="actions">
+          <button id="moveUpBtn">Move selected up</button>
+          <button id="moveDownBtn">Move selected down</button>
+        </div>
+        <button id="startCardEntryBtn">Start card entry</button>
+      </section>
+
+      <section id="cardEntryView" class="card hidden">
+        <div class="section-header">
+          <h2>Card Entry</h2>
+          <button id="startGameplayBtn">Start game</button>
+        </div>
+        <p id="cardQuotaText"></p>
+        <div id="progressList"></div>
+        <div class="card-form">
+          <label for="cardHeaderInput">Header</label>
+          <textarea id="cardHeaderInput" rows="2"></textarea>
+          <label for="cardBodyInput">Description</label>
+          <textarea id="cardBodyInput" rows="3"></textarea>
+          <button id="addCardBtn">Add card</button>
+        </div>
+        <h3>Your cards</h3>
+        <div id="myCardsList"></div>
+      </section>
+
+      <section id="roundView" class="card hidden">
+        <h2 id="roundHeader">Round</h2>
+        <div id="turnInfo" class="turn-info"></div>
+        <div id="countdownBlock" class="countdown hidden"></div>
+        <div id="timerBlock" class="timer hidden"></div>
+        <div id="presenterReady" class="presenter-ready hidden">
+          <button id="startTurnBtn">▶ Ready / Start</button>
+        </div>
+        <div id="presenterActions" class="presenter-actions hidden">
+          <button id="scoredBtn">✅ Scored</button>
+          <div id="presenterCard" class="prompt hidden">
+            <div id="scoreFx" class="score-fx hidden">+1</div>
+            <h3 id="promptHeader"></h3>
+            <p id="promptBody"></p>
+          </div>
+          <button id="passBtn">↩ Pass</button>
+          <div class="secondary-actions">
+            <button id="opponentPointBtn">⚑ Opponent Point</button>
+            <button id="undoBtn">↶ Undo</button>
+          </div>
+        </div>
+        <div id="waitingBlock" class="waiting hidden"></div>
+      </section>
+
+      <section id="roundSummaryView" class="card hidden">
+        <h2>Round Summary</h2>
+        <p id="roundSummaryText"></p>
+        <div id="roundSummaryScores"></div>
+        <button id="continueBtn">Continue</button>
+      </section>
+
+      <section id="finalView" class="card hidden">
+        <h2>Final Results</h2>
+        <div id="finalScores"></div>
+        <button id="endGameBtn">End Game</button>
+      </section>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+  </html>
